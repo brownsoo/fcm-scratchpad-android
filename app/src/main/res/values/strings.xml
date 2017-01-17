@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">FCM Test</string>
+    <string name="quickstart_message">FCM Scratchpad test client</string>
+    <string name="subscribe_to_news">News 토픽 수신</string>
+    <string name="unsubscribe_from_news">News 토픽 수신 해제</string>
+
+    <string name="msg_subscribed">News 토픽 수신 !!</string>
+    <string name="msg_unsubscribed">News 토픽 수신 해제 !!</string>
+    <string name="send">전송</string>
+    <string name="cancel">취소</string>
+    <string name="save">저장</string>
+</resources>
