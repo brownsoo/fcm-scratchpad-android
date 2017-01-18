@@ -7,10 +7,13 @@ import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+
+import java.util.Map;
 
 /**
  *
@@ -22,6 +25,8 @@ import com.google.firebase.messaging.RemoteMessage;
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     private static final String TAG = "MyFirebaseMsgService";
+    public static final String ACTION_PAYLOAD = "kr.appkr.fcm_scratchpad.Action.Payload";
+    public static final String KEY_REMOTE_MESSAGE = "RemoteMessage";
 
     /**
      * Called when message is received.
@@ -38,13 +43,19 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         // Check if message contains a data payload.
         if (remoteMessage.getData().size() > 0) {
             Log.d(TAG, "Message data payload: " + remoteMessage.getData());
-            sendNotification("Received: Message data payload.");
+            sendNotification("Received: Message data payload.", remoteMessage.getData());
+
+            LocalBroadcastManager broadcastManager = LocalBroadcastManager.getInstance(getApplicationContext());
+            Intent intent = new Intent();
+            intent.setAction(ACTION_PAYLOAD);
+            intent.putExtra(KEY_REMOTE_MESSAGE, remoteMessage);
+            broadcastManager.sendBroadcast(intent);
         }
 
         // Check if message contains a notification payload.
         if (remoteMessage.getNotification() != null) {
             Log.d(TAG, "Message Notification Body: " + remoteMessage.getNotification().getBody());
-            sendNotification(remoteMessage.getNotification().getBody());
+            sendNotification(remoteMessage.getNotification().getBody(), null);
         }
 
         // Also if you intend on generating your own notifications as a result of a received FCM
@@ -57,9 +68,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
      *
      * @param messageBody FCM message body received.
      */
-    private void sendNotification(String messageBody) {
+    private void sendNotification(String messageBody, Map<String, String> data) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        if (data != null) {
+            for (String key : data.keySet()) {
+                String value = data.get(key);
+                intent.putExtra(key, value);
+            }
+        }
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
 

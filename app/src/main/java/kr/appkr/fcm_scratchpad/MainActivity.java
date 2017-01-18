@@ -1,5 +1,9 @@
 package kr.appkr.fcm_scratchpad;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -7,6 +11,7 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -16,10 +21,12 @@ import android.widget.Toast;
 
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.RemoteMessage;
 
 import java.io.IOException;
 
 import kr.appkr.fcm_scratchpad.infra.MyConfig;
+import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -44,13 +51,6 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        if (getIntent().getExtras() != null) {
-            for (String key : getIntent().getExtras().keySet()) {
-                Object value = getIntent().getExtras().get(key);
-                Log.d(TAG, "Key: " + key + " Value: " + value);
-            }
-        }
 
         pref = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
                 Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
             }
         });
-
+        subscribeButton.setVisibility(View.GONE); // 토픽 수신 버튼 숨김
 
         urlTv = (TextView)findViewById(R.id.serverUrlTv);
         String url = pref.getString(MyConfig.PREF_KEY_3RD_URL, "");
@@ -101,6 +101,26 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
             }
         });
 
+        LocalBroadcastManager.getInstance(getApplicationContext())
+                .registerReceiver(broadcastReceiver, new IntentFilter(MyFirebaseMessagingService.ACTION_PAYLOAD));
+
+
+        if (getIntent().getExtras() != null) {
+
+            final StringBuilder sb = new StringBuilder();
+            sb.append("알림바 터치로 받은 데이터").append("\n");
+            for (String key : getIntent().getExtras().keySet()) {
+                Object value = getIntent().getExtras().get(key);
+                sb.append("   ").append(key).append(": ").append(value).append("\n");
+                Log.d(TAG, "Key: " + key + " Value: " + value);
+            }
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    receivedTv.setText(sb.toString());
+                }
+            });
+        }
     }
 
     @Override
@@ -142,6 +162,13 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
     }
 
     @Override
+    protected void onDestroy() {
+        LocalBroadcastManager.getInstance(getApplicationContext())
+                .unregisterReceiver(broadcastReceiver);
+        super.onDestroy();
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
         switch (requestCode) {
@@ -163,6 +190,31 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
             // permissions this app might request
         }
     }
+
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent != null && intent.hasExtra(MyFirebaseMessagingService.KEY_REMOTE_MESSAGE)) {
+                RemoteMessage remoteMessage = intent.getParcelableExtra(MyFirebaseMessagingService.KEY_REMOTE_MESSAGE);
+                final StringBuilder sb = new StringBuilder();
+                sb.append("데이터 메시지 받음 at ").append(remoteMessage.getSentTime()).append("\n")
+                    .append("From: ").append(remoteMessage.getFrom()).append("\n")
+                    .append("MessageType: ").append(remoteMessage.getMessageType()).append("\n")
+                    .append("Data: ").append("\n");
+
+                for (String key : remoteMessage.getData().keySet()) {
+                    String value = remoteMessage.getData().get(key);
+                    sb.append("   ").append(key).append(": ").append(value).append("\n");
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        receivedTv.setText(sb.toString());
+                    }
+                });
+            }
+        }
+    };
 
     private void showEditDialog() {
         DialogFragment dialog = new ServerUrlDialog();
@@ -189,10 +241,15 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
                 String token = FirebaseInstanceId.getInstance().getToken();
                 String json = MyConfig.takeTokenJson(getApplicationContext(), token);
                 RequestBody body = RequestBody.create(JSON, json);
+
+                String credential = Credentials.basic("user@example.com", "secret");
+
                 Request request = new Request.Builder()
+                        .header("Authorization", credential)
                         .url(url)
                         .post(body)
                         .build();
+
 
                 Log.d(TAG, "url: " + url);
                 Log.d(TAG, json);
@@ -204,7 +261,7 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                receivedTv.setText(re);
+                                receivedTv.setText("Response 데이터:\n" + re);
                             }
                         });
                     }
@@ -213,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            receivedTv.setText(e.getMessage());
+                            receivedTv.setText("오류 데이터:\n"+e.getMessage());
                         }
                     });
                 }
