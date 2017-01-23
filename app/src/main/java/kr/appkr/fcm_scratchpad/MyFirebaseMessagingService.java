@@ -16,8 +16,8 @@ import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
 /**
- *
- * refer:  https//github.com/firebase/quickstart-android/blob/master/messaging/app/src/main/java/com/google/firebase/quickstart/fcm/MyFirebaseMessagingService.java
+ * FCM 수신 처리
+ * 참고:  https//github.com/firebase/quickstart-android/blob/master/messaging/app/src/main/java/com/google/firebase/quickstart/fcm/MyFirebaseMessagingService.java
  *
  * Created by brownsoo on 2017. 1. 13..
  */
@@ -39,12 +39,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
         Log.d(TAG, "From: " + remoteMessage.getFrom());
-
+        boolean isSentNotification = false;
         // Check if message contains a data payload.
         if (remoteMessage.getData().size() > 0) {
             Log.d(TAG, "Message data payload: " + remoteMessage.getData());
+            // 알람바 터치로 액티비티 진입시 데이터 처리
             sendNotification("Received: Message data payload.", remoteMessage.getData());
+            isSentNotification = true;
 
+            // 데이터 정보가 있으면 로컬로 데이터 전파
             LocalBroadcastManager broadcastManager = LocalBroadcastManager.getInstance(getApplicationContext());
             Intent intent = new Intent();
             intent.setAction(ACTION_PAYLOAD);
@@ -53,15 +56,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
 
         // Check if message contains a notification payload.
-        if (remoteMessage.getNotification() != null) {
+        if (!isSentNotification && remoteMessage.getNotification() != null) {
             Log.d(TAG, "Message Notification Body: " + remoteMessage.getNotification().getBody());
             sendNotification(remoteMessage.getNotification().getBody(), null);
         }
-
-        // Also if you intend on generating your own notifications as a result of a received FCM
-        // message, here is where that should be initiated. See sendNotification method below.
     }
-    // [END receive_message]
 
     /**
      * Create and show a simple notification containing the received FCM message.

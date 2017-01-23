@@ -47,14 +47,10 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
      * @param token The new token.
      */
     private void sendRegistrationToServer(String token) {
-        // TODO: Implement this method to send token to your app server.
-
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         String url = preferences.getString(MyConfig.PREF_KEY_3RD_URL, "");
         if (url.length() > 0) {
-
-
-
+            // TODO 자동으로 token 전송
         }
 
 

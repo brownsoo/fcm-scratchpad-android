@@ -15,6 +15,8 @@ public class MyConfig {
 
     public static final String PREF_KEY_3RD_URL = "third_party_url";
     public static final String PREF_KEY_SUBSCRIBE = "subscribe";
+    public static final String PREF_KEY_EMAIL = "email";
+    public static final String PREF_KEY_PW = "password";
 
     public static String takeTokenJson(Context context, String token) {
 

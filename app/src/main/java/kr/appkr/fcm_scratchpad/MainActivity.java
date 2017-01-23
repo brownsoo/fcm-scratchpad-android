@@ -13,6 +13,7 @@ import android.support.v4.app.DialogFragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -33,7 +34,9 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class MainActivity extends AppCompatActivity implements ServerUrlDialog.ServerUrlDialogListener{
+public class MainActivity extends AppCompatActivity implements ServerUrlDialog.ServerUrlDialogListener,
+        SendTokenDialog.SendDialogListener
+{
 
     private static final String TAG = "MainActivity";
     private static final int MY_PERMISSIONS_REQUEST = 100;
@@ -97,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
         sendTokenButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendTokenUrl();
+                showSendDialog();
             }
         });
 
@@ -130,6 +133,8 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
         String token = FirebaseInstanceId.getInstance().getToken();
         TextView tokenTv = (TextView)findViewById(R.id.tokenTv);
         tokenTv.setText(token);
+        tokenTv.setMovementMethod(new ScrollingMovementMethod());
+
         if (token != null) {
             Log.d(TAG, "token = " + token);
         }
@@ -222,12 +227,24 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
     }
 
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog) {
+    public void onSavedServerUrlDialog(DialogFragment dialog) {
         String url = pref.getString(MyConfig.PREF_KEY_3RD_URL, "");
         urlTv.setText(url);
     }
 
-    private void sendTokenUrl() {
+    private void showSendDialog() {
+        DialogFragment dialog = new SendTokenDialog();
+        dialog.show(getSupportFragmentManager(), "SendTokenDialog");
+    }
+
+
+
+    @Override
+    public void onConfirmSendDialog(String email, String pw) {
+        sendTokenUrl(email, pw);
+    }
+
+    private void sendTokenUrl(final String email, final String pw) {
 
         final String url = pref.getString(MyConfig.PREF_KEY_3RD_URL, "");
         if (url.length() == 0) {
@@ -242,7 +259,7 @@ public class MainActivity extends AppCompatActivity implements ServerUrlDialog.S
                 String json = MyConfig.takeTokenJson(getApplicationContext(), token);
                 RequestBody body = RequestBody.create(JSON, json);
 
-                String credential = Credentials.basic("user@example.com", "secret");
+                String credential = Credentials.basic(email, pw);
 
                 Request request = new Request.Builder()
                         .header("Authorization", credential)
