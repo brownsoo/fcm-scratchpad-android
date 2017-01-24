@@ -14,6 +14,7 @@ FCM(Firebase Cloud Message)은 Android, iOS, Web 등의 클라이언트에 푸�
 * 토큰 보내기 버튼 : FCM 3rd party 서버로 토큰과 디바이스 정보를 전달합니다.
 
 그림 1 스크린샷
+
 ![](https://github.com/brownsoo/fcm-scratchpad-android/raw/master/screenshots/Screenshot_20170123-164712.png)
 
 
